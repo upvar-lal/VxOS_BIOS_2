@@ -23,7 +23,7 @@ jobs:
 
       - name: Configure Debian Live
         run: |
-          lb config             --mode debian             --distribution stable             --architectures amd64             --binary-images iso-hybrid             --archive-areas "main contrib non-free non-free-firmware"             --debian-installer false             --bootappend-live "boot=live components username=vxos hostname=vxos"
+          lb config             --mode debian             --distribution trixie             --architectures amd64             --binary-images iso-hybrid             --archive-areas "main contrib non-free non-free-firmware"             --mirror-chroot-security https://security.debian.org/debian-security             --mirror-binary-security https://security.debian.org/debian-security             --debian-installer false             --bootappend-live "boot=live components username=vxos hostname=vxos"
 
       - name: Add Google Chrome package when available
         continue-on-error: true
