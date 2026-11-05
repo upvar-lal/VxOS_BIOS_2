@@ -1,0 +1,53 @@
+name: Build VxOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install live-build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso             dosfstools mtools rsync curl ca-certificates
+
+      - name: Configure Debian Live
+        run: |
+          lb config             --mode debian             --distribution stable             --architectures amd64             --binary-images iso-hybrid             --archive-areas "main contrib non-free non-free-firmware"             --debian-installer false             --bootappend-live "boot=live components username=vxos hostname=vxos"
+
+      - name: Add Google Chrome package when available
+        continue-on-error: true
+        run: |
+          mkdir -p config/packages.chroot
+          curl -fL --retry 2             https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb             -o config/packages.chroot/google-chrome-stable_current_amd64.deb
+
+      - name: Build ISO
+        run: sudo lb build
+
+      - name: Prepare image files
+        run: |
+          mkdir -p dist
+          ISO="$(find . -maxdepth 1 -type f -name '*.iso' -print -quit)"
+          test -n "$ISO"
+          cp "$ISO" dist/VxOS-amd64.iso
+          cp "$ISO" dist/VxOS-amd64.img
+          cd dist
+          sha256sum VxOS-amd64.iso VxOS-amd64.img > SHA256SUMS.txt
+
+      - name: Upload VxOS images
+        uses: actions/upload-artifact@v4
+        with:
+          name: VxOS-amd64-images
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
